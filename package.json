@@ -12,7 +12,7 @@
   },
   "scripts": {
     "install-all": "npm-run-posix-or-windows install-all:task",
-    "install-all:task": "yarn & yarn install-launcher & yarn install-cli & yarn install-extension & yarn install-viewer & wait",
+    "install-all:task": "yarn; yarn install-launcher & yarn install-cli & yarn install-extension & yarn install-viewer & wait",
     "install-all:task:windows": "yarn && yarn install-launcher && yarn install-cli && yarn install-extension && yarn install-viewer",
     "install-launcher": "cd ./chrome-launcher && yarn install && yarn build",
     "install-cli": "cd ./lighthouse-cli && yarn install && yarn build",

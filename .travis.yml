@@ -1,10 +1,8 @@
 language: node_js
+dist: trusty
 matrix:
   include:
-    - node_js: "6.9.1"
-    - node_js: "7"
-    - node_js: "8"
-dist: trusty
+    - node_js: 6.9.1
 env:
   global:
     - ARTIFACTS_AWS_REGION=us-west-2
@@ -21,33 +19,13 @@ cache:
     - lighthouse-viewer/node_modules
     - /home/travis/.rvm/gems/
 install:
-  - yarn
-  # travis can't handle the parallel install (without caches)
-  - yarn run install-all:task:windows
-before_script:
-  - gem install travis-artifacts
-  - export DISPLAY=:99.0
-  - export CHROME_PATH="$(pwd)/chrome-linux/chrome"
-  - sh -e /etc/init.d/xvfb start
-  - sleep 3 # wait for xvfb to boot
-  - yarn build-all
+  - yarn run install-all:task
 script:
-  - yarn bundlesize
-  - yarn test-cli-formatting
-  - yarn test-launcher-formatting
-  - yarn lint
-  - yarn unit
-  - yarn closure
-  - yarn smoke
-  - yarn smokehouse
-  - yarn compile-devtools
-before_cache:
-  # the `yarn compile-devtools` task adds these to node_modules, which slows down caching
-  - rm -rf ./node_modules/temp-devtoolsfrontend/
-  - rm -rf ./node_modules/temp-devtoolsprotocol/
-after_success:
-  - ./lighthouse-core/scripts/generate-combined-coverage.sh
-after_failure:
-  - grep 'No screenshots' perf.json && travis-artifacts upload --path perf-0.trace.json
-addons:
-  chrome: stable
+  - echo "Prepare cache once ($TRAVIS_PULL_REQUEST)"
+jobs:
+  include:
+    - &prepare-cache
+      node_js: "6.9.1"
+    - <<: *prepare-cache
+      state: Prepare cache
+      script: echo "Prepare cache once ($TRAVIS_PULL_REQUEST)"
