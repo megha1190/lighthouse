@@ -1,8 +1,5 @@
 language: node_js
 dist: trusty
-matrix:
-  include:
-    - node_js: 6.9.1
 env:
   global:
     - ARTIFACTS_AWS_REGION=us-west-2
@@ -21,25 +18,31 @@ cache:
     - /home/travis/.rvm/gems/
     - "${HOME}/google-cloud-sdk/bin"
 install:
+  # stop travis when PR and not node 6.9.1
+  - 'if [ "$TRAVIS_PULL_REQUEST" != "false" ] && [ "$TRAVIS_NODE_VERSION" != "6.9.1" ]; then travis_terminate 0; fi'
   - yarn run install-all:task
-script:
-  - echo "Test 1234"
+script: "echo \"do nothing\""
 jobs:
   include:
-    #- &prepare-cache
-    #  node_js: "6.9.1"
-    #- &run-scripts
-    #  node_js: "6.9.1"
-    - stage: Prepare cache
-      script:
-        - echo "Prepare cache once ($TRAVIS_PULL_REQUEST)"
-    - stage: Test
+    - stage: prepare cache
+      script: yarn build-all
+      node_js: "6.9.1"
+    - node_js: "7"
+      script: yarn build-all
+    - node_js: "8"
+      script: yarn build-all
+    - stage: unit tests
       install: skip
-      env:
-        - TEST=foo
-        - TEST=bar
       script:
         - yarn bundlesize
-        - echo "Test cache once ($TEST)"
+        - yarn test-cli-formatting
+        - yarn test-launcher-formatting
+        - yarn lint
+      node_js: "6"
+
+before_cache:
+  # the `yarn compile-devtools` task adds these to node_modules, which slows down caching
+  - rm -rf ./node_modules/temp-devtoolsfrontend/
+  - rm -rf ./node_modules/temp-devtoolsprotocol/
 addons:
   chrome: stable
