@@ -30,6 +30,10 @@ jobs:
   include:
     - &prep-cache
       stage: Prepare cache
+      env:
+        - LINT=true
+        - SMOKE=true
+        - UNIT=true
       script:
         - source /home/travis/google-cloud-sdk/path.bash.inc
         - yarn build-ci
@@ -37,10 +41,12 @@ jobs:
         - gcloud auth activate-service-account --key-file gcloud-credentials.json
         - gsutil cp ${ARTIFACT_NAME}-${TRAVIS_NODE_VERSION}.tar.gz gs://lighthouse-ci
       node_js: "6.9.1"
-    - node_js: "7"
-    - node_js: "8"
+    - <<: *prep-cache
+      node_js: "7"
+    - <<: *prep-cache
+      node_js: "8"
     - &tests
-      stage: Tests
+      stage: Test
       env:
         - LINT=true
       install: skip
