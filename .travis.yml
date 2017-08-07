@@ -39,11 +39,10 @@ jobs:
       node_js: "6.9.1"
     - node_js: "7"
     - node_js: "8"
-    - stage: Tests
+    - &tests
+      stage: Tests
       env:
-      - LINT=true
-      - UNIT=true
-      - SMOKE=true
+        - LINT=true
       install: skip
       script:
         - source /home/travis/google-cloud-sdk/path.bash.inc
@@ -58,10 +57,41 @@ jobs:
         - 'if [ "${UNIT}" = "true" ]; then yarn smokehouse; fi'
         - 'if [ "${SMOKE}" = "true" ]; then yarn compile-devtools; fi'
         - 'if [ "${SMOKE}" = "true" ]; then yarn smokehouse; fi'
-      after_script: gsutil rm gs://lighthouse-ci/${ARTIFACT_NAME}-${TRAVIS_NODE_VERSION}.tar.gz
       node_js: "6.9.1"
-    - node_js: "7"
-    - node_js: "8"
+      addons:
+        chrome: stable
+    - <<: *tests
+      env:
+        - LINT=false
+        - UNIT=true
+    - <<: *tests
+      env:
+        - LINT=false
+        - SMOKE=true
+    - <<: *tests
+      node_js: "7"
+    - <<: *tests
+      env:
+        - LINT=false
+        - UNIT=true
+      node_js: "7"
+    - <<: *tests
+      env:
+        - LINT=false
+        - SMOKE=true
+      node_js: "7"
+    - <<: *tests
+      node_js: "8"
+    - <<: *tests
+      env:
+        - LINT=false
+        - UNIT=true
+      node_js: "8"
+    - <<: *tests
+      env:
+        - LINT=false
+        - SMOKE=true
+      node_js: "8"
 
 before_cache:
   # the `yarn compile-devtools` task adds these to node_modules, which slows down caching
