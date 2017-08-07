@@ -37,10 +37,8 @@ jobs:
         - gcloud auth activate-service-account --key-file gcloud-credentials.json
         - gsutil cp ${ARTIFACT_NAME}-${TRAVIS_NODE_VERSION}.tar.gz gs://lighthouse-ci
       node_js: "6.9.1"
-    - &prep-cache
-      node_js: "7"
-    - &prep-cache
-      node_js: "8"
+    - node_js: "7"
+    - node_js: "8"
     - stage: unit tests
       install: skip
       script:
@@ -52,6 +50,7 @@ jobs:
         - yarn test-cli-formatting
         - yarn test-launcher-formatting
         - yarn lint
+      after_script: gsutil rm gs://lighthouse-ci/${ARTIFACT_NAME}-${TRAVIS_NODE_VERSION}.tar.gz
       node_js: "6.9.1"
 
 before_cache:
