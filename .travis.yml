@@ -68,7 +68,7 @@ jobs:
         - 'if [ "${LINT}" = "true" ]; then yarn closure; fi'
         - 'if [ "${UNIT}" = "true" ]; then yarn unit; fi'
         - 'if [ "${UNIT}" = "true" ]; then yarn smoke; fi'
-        - 'if [ "${SMOKE}" = "true" ]; then yarn compile-devtools; fi'
+        - 'if [ "${SMOKE}" = "true" ] && [ "$TRAVIS_NODE_VERSION" = "6.9.1" ]; then yarn compile-devtools; fi'
         - 'if [ "${SMOKE}" = "true" ]; then yarn smokehouse; fi'
       node_js: "6.9.1"
       addons:
