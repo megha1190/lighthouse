@@ -35,6 +35,7 @@ jobs:
         - LINT=true
         - SMOKE=true
         - UNIT=true
+        - CACHE_NAME=node-${TRAVIS_NODE_VERSION}
       script:
         - cat /etc/init.d/xvfb
         - chmod +x travis/install_gcloud.sh
@@ -53,7 +54,7 @@ jobs:
       stage: Test
       env:
         - LINT=true
-      install: export CACHE_NAME=node-${TRAVIS_NODE_VERSION}
+        - CACHE_NAME=node-${TRAVIS_NODE_VERSION}
       script:
         - chmod +x travis/install_gcloud.sh
         - travis_wait ./travis/install_gcloud.sh
@@ -77,28 +78,34 @@ jobs:
     - <<: *tests
       env:
         - UNIT=true
+        - CACHE_NAME=node-${TRAVIS_NODE_VERSION}
     - <<: *tests
       env:
         - SMOKE=true
+        - CACHE_NAME=node-${TRAVIS_NODE_VERSION}
     - <<: *tests
       node_js: "7"
     - <<: *tests
       env:
         - UNIT=true
+        - CACHE_NAME=node-${TRAVIS_NODE_VERSION}
       node_js: "7"
     - <<: *tests
       env:
         - SMOKE=true
+        - CACHE_NAME=node-${TRAVIS_NODE_VERSION}
       node_js: "7"
     - <<: *tests
       node_js: "8"
     - <<: *tests
       env:
         - UNIT=true
+        - CACHE_NAME=node-${TRAVIS_NODE_VERSION}
       node_js: "8"
     - <<: *tests
       env:
         - SMOKE=true
+        - CACHE_NAME=node-${TRAVIS_NODE_VERSION}
       node_js: "8"
 
 before_cache:
