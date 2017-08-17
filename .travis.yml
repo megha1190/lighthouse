@@ -51,6 +51,7 @@ jobs:
       node_js: "8"
     - &tests
       stage: Test
+      install: skip
       env:
         - LINT=true
         - CACHE_NAME=node-${TRAVIS_NODE_VERSION}
