@@ -37,7 +37,6 @@ jobs:
         - UNIT=true
         - CACHE_NAME=node-${TRAVIS_NODE_VERSION}
       script:
-        - cat /etc/init.d/xvfb
         - chmod +x travis/install_gcloud.sh
         - travis_wait ./travis/install_gcloud.sh
         - source ${HOME}/google-cloud-sdk/path.bash.inc
@@ -56,8 +55,6 @@ jobs:
         - LINT=true
         - CACHE_NAME=node-${TRAVIS_NODE_VERSION}
       script:
-        - chmod +x travis/install_gcloud.sh
-        - travis_wait ./travis/install_gcloud.sh
         - source ${HOME}/google-cloud-sdk/path.bash.inc
         - gcloud auth activate-service-account --key-file gcloud-credentials.json
         - gsutil cp gs://lighthouse-ci/${ARTIFACT_NAME}-${TRAVIS_NODE_VERSION}.tar.gz ./
