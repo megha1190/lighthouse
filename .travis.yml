@@ -2,6 +2,7 @@ language: node_js
 dist: trusty
 env:
   global:
+    - CACHE_NAME=JOB-NODE
     - ARTIFACTS_AWS_REGION=us-west-2
     - ARTIFACTS_S3_BUCKET=lighthouse-screenshots-debugging
     - CLOUDSDK_CORE_DISABLE_PROMPTS=1
@@ -34,7 +35,7 @@ jobs:
         - LINT=true
         - SMOKE=true
         - UNIT=true
-        - CACHE_NAME=node${TRAVIS_NODE_VERSION}
+        - CACHE_NAME=node6
       script:
         - ls $CASHER_DIR
         - chmod +x travis/install_gcloud.sh
@@ -46,6 +47,11 @@ jobs:
         - gsutil cp ${ARTIFACT_NAME}-${TRAVIS_NODE_VERSION}.tar.gz gs://lighthouse-ci
       node_js: "6.9.1"
     - <<: *prep-cache
+      env:
+        - LINT=true
+        - SMOKE=true
+        - UNIT=true
+        - CACHE_NAME=node7
       node_js: "7"
     - <<: *prep-cache
       env:
