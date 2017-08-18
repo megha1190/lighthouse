@@ -21,7 +21,6 @@ cache:
     - "${HOME}/google-cloud-sdk/"
 before_install:
   - openssl aes-256-cbc -K $encrypted_83706645e717_key -iv $encrypted_83706645e717_iv -in gcloud-credentials.json.enc -out gcloud-credentials.json -d
-  - export CACHE_NAME=node-${TRAVIS_NODE_VERSION}
 install:
   # stop travis when PR and not node 6.9.1
   - 'if [ "$TRAVIS_PULL_REQUEST" != "false" ] && [ "$TRAVIS_NODE_VERSION" != "6.9.1" ]; then travis_terminate 0; fi'
