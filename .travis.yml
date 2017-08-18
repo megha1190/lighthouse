@@ -36,6 +36,7 @@ jobs:
         - UNIT=true
         - CACHE_NAME=node${TRAVIS_NODE_VERSION}
       script:
+        - ls $CASHER_DIR
         - chmod +x travis/install_gcloud.sh
         - travis_wait ./travis/install_gcloud.sh
         - source ${HOME}/google-cloud-sdk/path.bash.inc
@@ -47,6 +48,11 @@ jobs:
     - <<: *prep-cache
       node_js: "7"
     - <<: *prep-cache
+      env:
+        - LINT=true
+        - SMOKE=true
+        - UNIT=true
+        - CACHE_NAME=node8
       node_js: "8"
     - &tests
       stage: Test
@@ -97,12 +103,12 @@ jobs:
     - <<: *tests
       env:
         - UNIT=true
-        - CACHE_NAME=node${TRAVIS_NODE_VERSION}
+        - CACHE_NAME=JOB-NODE_8
       node_js: "8"
     - <<: *tests
       env:
         - SMOKE=true
-        - CACHE_NAME=node${TRAVIS_NODE_VERSION}
+        - CACHE_NAME=JOB-NODE_8
       node_js: "8"
 
 before_cache:
