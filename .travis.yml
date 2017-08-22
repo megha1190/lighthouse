@@ -2,7 +2,6 @@ language: node_js
 dist: trusty
 env:
   global:
-    - CACHE_NAME=NODE
     - ARTIFACTS_AWS_REGION=us-west-2
     - ARTIFACTS_S3_BUCKET=lighthouse-screenshots-debugging
     - CLOUDSDK_CORE_DISABLE_PROMPTS=1
@@ -35,9 +34,7 @@ jobs:
         - LINT=true
         - SMOKE=true
         - UNIT=true
-        - CACHE_NAME=node6
       script:
-        - ls $CASHER_DIR/paths
         - chmod +x travis/install_gcloud.sh
         - travis_wait ./travis/install_gcloud.sh
         - source ${HOME}/google-cloud-sdk/path.bash.inc
@@ -51,22 +48,21 @@ jobs:
         - LINT=true
         - SMOKE=true
         - UNIT=true
-        - CACHE_NAME=node7
       node_js: "7"
     - <<: *prep-cache
       env:
         - LINT=true
         - SMOKE=true
         - UNIT=true
-        - CACHE_NAME=node8
       node_js: "8"
     - &tests
       stage: Test
       install: skip
       env:
         - LINT=true
-        - CACHE_NAME=node${TRAVIS_NODE_VERSION}
       script:
+        - chmod +x travis/install_gcloud.sh
+        - travis_wait ./travis/install_gcloud.sh
         - source ${HOME}/google-cloud-sdk/path.bash.inc
         - gcloud auth activate-service-account --key-file gcloud-credentials.json
         - gsutil cp gs://lighthouse-ci/${ARTIFACT_NAME}-${TRAVIS_NODE_VERSION}.tar.gz ./
@@ -87,34 +83,28 @@ jobs:
     - <<: *tests
       env:
         - UNIT=true
-        - CACHE_NAME=node6
     - <<: *tests
       env:
         - SMOKE=true
-        - CACHE_NAME=node6
     - <<: *tests
       node_js: "7"
     - <<: *tests
       env:
         - UNIT=true
-        - CACHE_NAME=node7
       node_js: "7"
     - <<: *tests
       env:
         - SMOKE=true
-        - CACHE_NAME=node7
       node_js: "7"
     - <<: *tests
       node_js: "8"
     - <<: *tests
       env:
         - UNIT=true
-        - CACHE_NAME=node8
       node_js: "8"
     - <<: *tests
       env:
         - SMOKE=true
-        - CACHE_NAME=node8
       node_js: "8"
 
 before_cache:
