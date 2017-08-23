@@ -77,6 +77,10 @@ jobs:
         - 'if [ "${UNIT}" = "true" ]; then yarn smoke; fi'
         - 'if [ "${SMOKE}" = "true" ] && [ "$TRAVIS_NODE_VERSION" = "6.9.1" ]; then yarn compile-devtools; fi'
         - 'if [ "${SMOKE}" = "true" ]; then yarn smokehouse; fi'
+      after_failure:
+        - 'if [ "${SMOKE}" = "true" ]; then grep "No screenshots" perf.json && gem install travis-artifacts && travis-artifacts upload --path perf-0.trace.json; fi'
+      after_success:
+        - 'if [ "${LINT}" = "true" ]; then ./lighthouse-core/scripts/generate-combined-coverage.sh; fi'
       node_js: "6.9.1"
       addons:
         chrome: stable
@@ -111,4 +115,3 @@ before_cache:
   # the `yarn compile-devtools` task adds these to node_modules, which slows down caching
   - rm -rf ./node_modules/temp-devtoolsfrontend/
   - rm -rf ./node_modules/temp-devtoolsprotocol/
-
