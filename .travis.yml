@@ -110,6 +110,20 @@ jobs:
       env:
         - SMOKE=true
       node_js: "8"
+    - &cleanup
+      stage: Cleanup
+      install: skip
+      cache: skip
+      script:
+        - chmod +x travis/install_gcloud.sh
+        - travis_wait ./travis/install_gcloud.sh
+        - source ${HOME}/google-cloud-sdk/path.bash.inc
+        - gsutil rm gs://lighthouse-ci/${ARTIFACT_NAME}-${TRAVIS_NODE_VERSION}.tar.gz
+      node_js: "6.9.1"
+    - <<: *cleanup
+      node_js: "7"
+    - <<: *cleanup
+      node_js: "8"
 
 before_cache:
   # the `yarn compile-devtools` task adds these to node_modules, which slows down caching
