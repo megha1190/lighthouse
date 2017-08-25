@@ -114,6 +114,10 @@ jobs:
       stage: Cleanup
       install: skip
       cache: skip
+      env:
+        - LINT=true
+        - SMOKE=true
+        - UNIT=true
       script:
         - chmod +x travis/install_gcloud.sh
         - travis_wait ./travis/install_gcloud.sh
