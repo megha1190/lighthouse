@@ -118,6 +118,7 @@ jobs:
         - chmod +x travis/install_gcloud.sh
         - travis_wait ./travis/install_gcloud.sh
         - source ${HOME}/google-cloud-sdk/path.bash.inc
+        - gcloud auth activate-service-account --key-file gcloud-credentials.json
         - gsutil rm gs://lighthouse-ci/${ARTIFACT_NAME}-${TRAVIS_NODE_VERSION}.tar.gz
       node_js: "6.9.1"
     - <<: *cleanup
