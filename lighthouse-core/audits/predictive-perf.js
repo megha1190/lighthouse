@@ -23,7 +23,9 @@ class PredictivePerf extends Audit {
       category: 'Performance',
       name: 'predictive-perf',
       description: 'Predicted Performance (beta)',
-      helpText: '',
+      helpText: 'Predicted performance evaluates how your site will perform under ' +
+          'a 3G connection on a mobile device.',
+      scoringMode: Audit.SCORING_MODES.NUMERIC,
       requiredArtifacts: ['traces', 'devtoolsLogs']
     };
   }
