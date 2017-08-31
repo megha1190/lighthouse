@@ -7,12 +7,15 @@
 
 const Node = require('../node');
 const TcpConnection = require('./tcp-connection');
+const emulation = require('../../../../lib/emulation').settings;
 
 // see https://cs.chromium.org/search/?q=kDefaultMaxNumDelayableRequestsPerClient&sq=package:chromium&type=cs
 const DEFAULT_MAXIMUM_CONCURRENT_REQUESTS = 10;
-const DEFAULT_RESPONSE_TIME = 30;
-const DEFAULT_RTT = 150;
-const DEFAULT_THROUGHPUT = 1600 * 1024; // 1.6 Mbps
+const DEFAULT_FALLBACK_TTFB = 30;
+const DEFAULT_RTT = emulation.TYPICAL_MOBILE_THROTTLING_METRICS.targetLatency;
+const DEFAULT_THROUGHPUT = emulation.TYPICAL_MOBILE_THROTTLING_METRICS.targetDownloadThroughput * 8;
+
+const TLS_SCHEMES = ['https', 'wss'];
 
 function groupBy(items, keyFunc) {
   const grouped = new Map();
@@ -29,7 +32,7 @@ function groupBy(items, keyFunc) {
 class Estimator {
   /**
    * @param {!Node} graph
-   * @param {{rtt: number, throughput: number, defaultResponseTime: number,
+   * @param {{rtt: number, throughput: number, fallbackTTFB: number,
    *    maximumConcurrentRequests: number}=} options
    */
   constructor(graph, options) {
@@ -38,7 +41,7 @@ class Estimator {
       {
         rtt: DEFAULT_RTT,
         throughput: DEFAULT_THROUGHPUT,
-        defaultResponseTime: DEFAULT_RESPONSE_TIME,
+        fallbackTTFB: DEFAULT_FALLBACK_TTFB,
         maximumConcurrentRequests: DEFAULT_MAXIMUM_CONCURRENT_REQUESTS,
       },
       options
@@ -46,7 +49,7 @@ class Estimator {
 
     this._rtt = this._options.rtt;
     this._throughput = this._options.throughput;
-    this._defaultResponseTime = this._options.defaultResponseTime;
+    this._fallbackTTFB = this._options.fallbackTTFB;
     this._maximumConcurrentRequests = Math.min(
       TcpConnection.maximumSaturatedConnections(this._rtt, this._throughput),
       this._options.maximumConcurrentRequests
@@ -57,22 +60,19 @@ class Estimator {
    * @param {!WebInspector.NetworkRequest} record
    * @return {number}
    */
-  static getResponseTime(record) {
+  static getTTFB(record) {
     const timing = record._timing;
     return (timing && timing.receiveHeadersEnd - timing.sendEnd) || Infinity;
   }
 
   _initializeNetworkRecords() {
-    const records = [];
+    this._networkRecords = [];
 
     this._graph.getRootNode().traverse(node => {
       if (node.type === Node.TYPES.NETWORK) {
-        records.push(node.record);
+        this._networkRecords.push(node.record);
       }
     });
-
-    this._networkRecords = records;
-    return records;
   }
 
   _initializeNetworkConnections() {
@@ -83,21 +83,29 @@ class Estimator {
     );
 
     for (const [connectionId, records] of recordsByConnection.entries()) {
-      const isSsl = records[0].parsedURL.scheme === 'https';
-      let responseTime = records.reduce(
-        (min, record) => Math.min(min, Estimator.getResponseTime(record)),
+      const isTLS = TLS_SCHEMES.includes(records[0].parsedURL.scheme);
+
+      // We'll approximate how much time the server for a connection took to respond after receiving
+      // the request by computing the minimum TTFB time for requests on that connection.
+      //    TTFB = one way latency + server response time + one way latency
+      // Even though TTFB is greater than server response time, the RTT is underaccounted for by
+      // not varying per-server and so the difference roughly evens out.
+      // TODO(patrickhulce): investigate a way to identify per-server RTT
+      let estimatedResponseTime = records.reduce(
+        (min, record) => Math.min(min, Estimator.getTTFB(record)),
         Infinity
       );
 
-      if (!Number.isFinite(responseTime)) {
-        responseTime = this._defaultResponseTime;
+      // If we couldn't find a TTFB for the requests, use the fallback TTFB instead.
+      if (!Number.isFinite(estimatedResponseTime)) {
+        estimatedResponseTime = this._fallbackTTFB;
       }
 
       const connection = new TcpConnection(
         this._rtt,
         this._throughput,
-        responseTime,
-        isSsl
+        estimatedResponseTime,
+        isTLS
       );
 
       connections.set(connectionId, connection);
@@ -108,7 +116,7 @@ class Estimator {
   }
 
   _initializeAuxiliaryData() {
-    this._nodeAuxiliaryData = new Map();
+    this._nodeTiming = new Map();
     this._nodesCompleted = new Set();
     this._nodesInProcess = new Set();
     this._nodesInQueue = new Set(); // TODO: replace this with priority queue
@@ -146,7 +154,7 @@ class Estimator {
 
     this._nodesInQueue.delete(node);
     this._nodesInProcess.add(node);
-    this._nodeAuxiliaryData.set(node, {
+    this._nodeTiming.set(node, {
       startTime: totalElapsedTime,
       timeElapsed: 0,
       timeElapsedOvershoot: 0,
@@ -169,15 +177,15 @@ class Estimator {
   _estimateTimeRemaining(node) {
     if (node.type !== Node.TYPES.NETWORK) throw new Error('Unsupported');
 
-    const auxiliaryData = this._nodeAuxiliaryData.get(node);
+    const timingData = this._nodeTiming.get(node);
     const connection = this._connections.get(node.record.connectionId);
-    const calculation = connection.calculateTimeToDownload(
-      node.record.transferSize - auxiliaryData.bytesDownloaded,
-      auxiliaryData.timeElapsed
+    const calculation = connection.simulateDownloadUntil(
+      node.record.transferSize - timingData.bytesDownloaded,
+      timingData.timeElapsed
     );
 
-    const estimate = calculation.timeElapsed + auxiliaryData.timeElapsedOvershoot;
-    auxiliaryData.estimatedTimeElapsed = estimate;
+    const estimate = calculation.timeElapsed + timingData.timeElapsedOvershoot;
+    timingData.estimatedTimeElapsed = estimate;
     return estimate;
   }
 
@@ -201,18 +209,18 @@ class Estimator {
   _updateProgressMadeInTimePeriod(node, timePeriodLength, totalElapsedTime) {
     if (node.type !== Node.TYPES.NETWORK) throw new Error('Unsupported');
 
-    const auxiliaryData = this._nodeAuxiliaryData.get(node);
+    const timingData = this._nodeTiming.get(node);
     const connection = this._connections.get(node.record.connectionId);
-    const calculation = connection.calculateTimeToDownload(
-      node.record.transferSize - auxiliaryData.bytesDownloaded,
-      auxiliaryData.timeElapsed,
-      timePeriodLength - auxiliaryData.timeElapsedOvershoot
+    const calculation = connection.simulateDownloadUntil(
+      node.record.transferSize - timingData.bytesDownloaded,
+      timingData.timeElapsed,
+      timePeriodLength - timingData.timeElapsedOvershoot
     );
 
     connection.setCongestionWindow(calculation.congestionWindow);
 
-    if (auxiliaryData.estimatedTimeElapsed === timePeriodLength) {
-      auxiliaryData.endTime = totalElapsedTime;
+    if (timingData.estimatedTimeElapsed === timePeriodLength) {
+      timingData.endTime = totalElapsedTime;
 
       connection.setWarmed(true);
       this._connectionsInUse.delete(connection);
@@ -224,10 +232,9 @@ class Estimator {
         this._enqueueNodeIfPossible(dependent);
       }
     } else {
-      auxiliaryData.timeElapsed += calculation.timeElapsed;
-      auxiliaryData.timeElapsedOvershoot +=
-        calculation.timeElapsed - timePeriodLength;
-      auxiliaryData.bytesDownloaded += calculation.bytesDownloaded;
+      timingData.timeElapsed += calculation.timeElapsed;
+      timingData.timeElapsedOvershoot += calculation.timeElapsed - timePeriodLength;
+      timingData.bytesDownloaded += calculation.bytesDownloaded;
     }
   }
 

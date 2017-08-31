@@ -19,7 +19,7 @@ class TcpConnection {
     this._warmed = false;
     this._ssl = ssl;
     this._rtt = rtt;
-    this._availableThroughput = throughput;
+    this._throughput = throughput;
     this._responseTime = responseTime;
     this._congestionWindow = INITIAL_CONGESTION_WINDOW;
   }
@@ -41,7 +41,7 @@ class TcpConnection {
    * @return {number}
    */
   _computeMaximumCongestionWindowInSegments() {
-    const bytesPerSecond = this._availableThroughput / 8;
+    const bytesPerSecond = this._throughput / 8;
     const secondsPerRoundTrip = this._rtt / 1000;
     const bytesPerRoundTrip = bytesPerSecond * secondsPerRoundTrip;
     return Math.floor(bytesPerRoundTrip / TCP_SEGMENT_SIZE);
@@ -51,7 +51,7 @@ class TcpConnection {
    * @param {number} throughput
    */
   setThroughput(throughput) {
-    this._availableThroughput = throughput;
+    this._throughput = throughput;
   }
 
   /**
@@ -80,7 +80,7 @@ class TcpConnection {
    * @param {number=} maximumTimeToElapse
    * @return {{timeElapsed: number, roundTrips: number, bytesDownloaded: number, congestionWindow: number}}
    */
-  calculateTimeToDownload(bytesToDownload, timeAlreadyElapsed = 0, maximumTimeToElapse = Infinity) {
+  simulateDownloadUntil(bytesToDownload, timeAlreadyElapsed = 0, maximumTimeToElapse = Infinity) {
     const twoWayLatency = this._rtt;
     const oneWayLatency = twoWayLatency / 2;
     const maximumCongestionWindow = this._computeMaximumCongestionWindowInSegments();
@@ -94,7 +94,7 @@ class TcpConnection {
         oneWayLatency +
         // ACK + Application Data
         oneWayLatency +
-        // ClientHello/ServerHello with TLS False Start
+        // ClientHello/ServerHello assuming TLS Flase Start is enabled (https://istlsfastyet.com/#server-performance).
         (this._ssl ? twoWayLatency : 0);
     }
 

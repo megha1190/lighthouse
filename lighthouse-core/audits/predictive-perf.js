@@ -100,7 +100,7 @@ class PredictivePerf extends Audit {
         sum += values[key];
       });
 
-      const rawValue = sum / 4;
+      const rawValue = sum / Object.keys(values).length;
       const score = Audit.computeLogNormalScore(
         rawValue,
         SCORING_POINT_OF_DIMINISHING_RETURNS,

@@ -31,7 +31,7 @@ describe('DependencyGraph/Estimator', () => {
   describe('.estimate', () => {
     it('should estimate basic graphs', () => {
       const rootNode = new Node(request({}));
-      const estimator = new Estimator(rootNode, {defaultResponseTime: 500});
+      const estimator = new Estimator(rootNode, {fallbackTTFB: 500});
       const result = estimator.estimate();
       // should be 2 RTTs and 500ms for the server response time
       assert.equal(result, 300 + 500);
@@ -47,7 +47,7 @@ describe('DependencyGraph/Estimator', () => {
       nodeB.addDependent(nodeC);
       nodeC.addDependent(nodeD);
 
-      const estimator = new Estimator(nodeA, {defaultResponseTime: 500});
+      const estimator = new Estimator(nodeA, {fallbackTTFB: 500});
       const result = estimator.estimate();
       // should be 800ms each for A, B, C, D
       assert.equal(result, 3200);
@@ -63,7 +63,7 @@ describe('DependencyGraph/Estimator', () => {
       nodeA.addDependent(nodeC);
       nodeA.addDependent(nodeD);
 
-      const estimator = new Estimator(nodeA, {defaultResponseTime: 500});
+      const estimator = new Estimator(nodeA, {fallbackTTFB: 500});
       const result = estimator.estimate();
       // should be 800ms for A and 950ms for C (2 round trips of downloading)
       assert.equal(result, 800 + 950);
@@ -79,7 +79,7 @@ describe('DependencyGraph/Estimator', () => {
       nodeA.addDependent(nodeC);
       nodeA.addDependent(nodeD);
 
-      const estimator = new Estimator(nodeA, {defaultResponseTime: 500});
+      const estimator = new Estimator(nodeA, {fallbackTTFB: 500});
       const result = estimator.estimate();
       // should be 800ms for A and 650ms for the next 3
       assert.equal(result, 800 + 650 * 3);
@@ -95,7 +95,7 @@ describe('DependencyGraph/Estimator', () => {
       nodeA.addDependent(nodeC);
       nodeA.addDependent(nodeD);
 
-      const estimator = new Estimator(nodeA, {defaultResponseTime: 500});
+      const estimator = new Estimator(nodeA, {fallbackTTFB: 500});
       const result = estimator.estimate();
       // should be 800ms for A and 950ms for C (2 round trips of downloading)
       assert.equal(result, 800 + 950);
